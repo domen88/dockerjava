@@ -14,28 +14,23 @@ public class Programma {
 
     public static void main(String[] args) throws DockerCertificateException, DockerException, InterruptedException {
 
+        //Open the docker client
         final DockerClient docker = DefaultDockerClient.fromEnv().build();
 
-        final Volume volumeToCreate = Volume.builder()
-                .name("dbdata")
-                .build();
-        final Volume created = docker.createVolume(volumeToCreate);
+        //Pull latest mongo images from docker hub
+        docker.pull("mongo:latest");
 
-        final HostConfig hostConfig = HostConfig.builder()
-                .binds(HostConfig.Bind.from(created).to("/dbdata").build())
-                .build();
-
-        docker.pull("training/postgres");
-
+        //Configuration of Container Data Volume
         final ContainerConfig containerConfig = ContainerConfig.builder()
-                .image("training/postgres")
-                .tty(true)
-                .hostConfig(hostConfig)
+                .image("mongo")
+                .addVolume("/data/db")
+                .cmd("/bin/true")
                 .build();
 
-        docker.createContainer(containerConfig, "cont");
+        //Create Container Data Volume
+        docker.createContainer(containerConfig, "dbdata");
 
-        // Close the docker client
+        //Close the docker client
         docker.close();
 
     }
