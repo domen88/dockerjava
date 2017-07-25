@@ -6,6 +6,7 @@ import com.google.gson.Gson;
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.DockerCertificates;
 import com.spotify.docker.client.DockerClient;
+import com.spotify.docker.client.exceptions.ContainerNotFoundException;
 import com.spotify.docker.client.exceptions.DockerCertificateException;
 import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.messages.*;
@@ -23,15 +24,18 @@ public class Programma {
     public static void main(String[] args) throws DockerCertificateException, DockerException, InterruptedException {
 
         //Current docker connector
-        DockerConnectImpl currentDockerConnector =  new DockerConnectImpl();;
+        DockerConnectImpl currentDockerConnector =  new DockerConnectImpl();
+        final StringBuffer address = new StringBuffer();
 
         //Set Java Spark server port
         port(8080);
 
+        before((request, response) -> response.type("application/json"));
+
         get("/connect", "application/json", (req, res) -> {
 
-            DockerConnectImpl dockerConnector = new DockerConnectImpl();
-            DockerClient docker = dockerConnector.getConnection();
+            DockerClient docker = currentDockerConnector.setConnection();
+            address.append("localhost");
             return "{\"message\":\"Connect OK\"}";
 
         });
@@ -39,36 +43,49 @@ public class Programma {
         get("/connect/:ip", "application/json", (req, res) -> {
 
             final String ip = req.params(":ip");
+            address.append(ip);
             String path = "/Users/domenicoscotece/.docker/openfog";
             path += ip.equals("137.204.57.112") ? "1" : "2";
-            DockerConnectImpl dockerConnector = new DockerConnectImpl(ip, path);
-            DockerClient docker = dockerConnector.getConnection();
+            DockerClient docker = currentDockerConnector.setConnection(ip, path);
             return "{\"message\":\"Connect OK\"}";
-
-        });
-
-        get("/info/:ip", "application/json", (req, res) -> {
-
-            final String ip = req.params(":ip");
-            String path = "/Users/domenicoscotece/.docker/openfog";
-            path += ip.equals("137.204.57.112") ? "1" : "2";
-            DockerConnectImpl dockerConnector = new DockerConnectImpl(ip, path);
-            DockerClient docker = dockerConnector.getConnection();
-            final Info info = docker.info();
-            dockerConnector.close();
-            Gson json = new Gson();
-            return json.toJson(info);
 
         });
 
         get("/info", "application/json", (req, res) -> {
 
-            DockerConnectImpl dockerConnector = new DockerConnectImpl();
-            DockerClient docker = dockerConnector.getConnection();
+            DockerClient docker = currentDockerConnector.getConnection();
             final Info info = docker.info();
-            dockerConnector.close();
             Gson json = new Gson();
             return json.toJson(info);
+
+        });
+
+
+        get("/createVolume", "application/json", (req, res) -> {
+
+            DockerClient docker = currentDockerConnector.getConnection();
+
+            //Pull latest mongo images from docker hub
+            docker.pull("mongo:latest");
+
+            //Remove previous data container volume
+            try {
+                docker.removeContainer("dbdata");
+            } catch (ContainerNotFoundException containerNotFoundException){
+                System.out.println("Container not found: dbdata");
+            }
+
+            //Configuration of Container Data Volume
+            final ContainerConfig containerConfig = ContainerConfig.builder()
+                    .image("mongo")
+                    .addVolume("/data/db")
+                    .cmd("/bin/true")
+                    .build();
+
+            //Create Container Data Volume
+            ContainerCreation container = docker.createContainer(containerConfig, "dbdata");
+            Gson json = new Gson();
+            return json.toJson(container);
 
         });
 

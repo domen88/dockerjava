@@ -16,11 +16,6 @@ public class DockerConnectImpl implements DockerConnect {
     private DockerClient docker;
     private List<DockerClient> cachedDocker = new ArrayList<>(1);
 
-    public DockerConnectImpl(String... args) throws DockerCertificateException {
-        this.docker = connect(args);
-        this.cachedDocker.add(this.docker);
-    }
-
     @Override
     public DockerClient connect(String... args) throws DockerCertificateException {
         //MAC environment
@@ -47,10 +42,19 @@ public class DockerConnectImpl implements DockerConnect {
         this.docker.close();
     }
 
-    public DockerClient getConnection() throws DockerCertificateException {
+    public DockerClient setConnection(String... args) throws DockerCertificateException {
+        if (!this.cachedDocker.isEmpty()){
+            this.cachedDocker.remove(this.docker);
+        }
+        this.docker = connect(args);
+        this.cachedDocker.add(this.docker);
+        return this.docker;
+    }
+
+    public DockerClient getConnection(String... args) throws DockerCertificateException {
 
         if (this.cachedDocker.isEmpty()){
-            return connect();
+            return connect(args);
         } else {
             return this.cachedDocker.get(0);
         }
