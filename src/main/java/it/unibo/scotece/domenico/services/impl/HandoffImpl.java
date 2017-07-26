@@ -1,20 +1,25 @@
 package it.unibo.scotece.domenico.services.impl;
 
+import com.google.gson.Gson;
 import com.spotify.docker.client.DockerClient;
 import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.messages.ContainerConfig;
 import com.spotify.docker.client.messages.ContainerCreation;
 import com.spotify.docker.client.messages.HostConfig;
-import it.unibo.scotece.domenico.services.ClientSocketSupport;
 import it.unibo.scotece.domenico.services.Handoff;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
 
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.net.*;
-import java.nio.channels.SocketChannel;
-import java.util.Random;
+
 
 public class HandoffImpl implements Handoff {
 
@@ -50,22 +55,10 @@ public class HandoffImpl implements Handoff {
     }
 
     @Override
-    public void sendBackup(String src, String dst) throws IOException {
+    public void sendBackup(String src, String dst) throws Exception {
 
         ClientSocketSupportImpl clientSocketSupport = new ClientSocketSupportImpl();
-
-        //Open Socket communication
-        final String url = "http://" + dst + ":8080/socket";
-        URL obj = new URL(url);
-        HttpURLConnection con = (HttpURLConnection) obj.openConnection();
-        con.setRequestMethod("GET");
-
-
-        clientSocketSupport.createChannel("dst");
-        clientSocketSupport.sendFile();
-
-
-
+        clientSocketSupport.startClient(dst);
 
     }
 

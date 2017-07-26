@@ -11,5 +11,5 @@ public interface Handoff {
 
     void createDataVolumeContainer(DockerClient docker, String baseImage, String containerName);
     void createBackup(DockerClient docker, String volumesFrom) throws DockerException, InterruptedException;
-    void sendBackup(String src, String dst) throws IOException;
+    void sendBackup(String src, String dst) throws Exception;
 }

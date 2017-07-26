@@ -11,6 +11,13 @@ import com.spotify.docker.client.exceptions.DockerCertificateException;
 import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.messages.*;
 import it.unibo.scotece.domenico.services.impl.DockerConnectImpl;
+import it.unibo.scotece.domenico.services.impl.HandoffImpl;
+import org.apache.http.HttpEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
 import spark.Spark;
 
 import java.beans.IntrospectionException;
@@ -86,6 +93,46 @@ public class Programma {
             ContainerCreation container = docker.createContainer(containerConfig, "dbdata");
             Gson json = new Gson();
             return json.toJson(container);
+
+        });
+
+        get("/handoff", "application/json", (req, res) -> {
+
+            DockerClient docker = currentDockerConnector.getConnection();
+
+            //Open Socket communication
+            final String uri = "http://137.204.57.112:8080/socket";
+            CloseableHttpClient httpclient = HttpClients.createDefault();
+            HttpGet httpGet = new HttpGet(uri);
+            CloseableHttpResponse response = httpclient.execute(httpGet);
+            response.close();
+
+            HandoffImpl handoff = new HandoffImpl();
+            handoff.createBackup(docker, "dbdata");
+            handoff.sendBackup("localhost", "137.204.57.112");
+            return "{\"message\":\"Handoff Completed\"}";
+
+        });
+
+        get("/createHandoff", "application/json", (req, res) -> {
+
+            DockerClient docker = currentDockerConnector.getConnection();
+
+            HandoffImpl handoff = new HandoffImpl();
+            handoff.createBackup(docker, "dbdata");
+
+            return "{\"message\":\"Handoff Created\"}";
+
+        });
+
+        get("/sendHandoff", "application/json", (req, res) -> {
+
+            DockerClient docker = currentDockerConnector.getConnection();
+
+            HandoffImpl handoff = new HandoffImpl();
+            handoff.sendBackup("localhost", "137.204.57.112");
+
+            return "{\"message\":\"Handoff Sent\"}";
 
         });
 

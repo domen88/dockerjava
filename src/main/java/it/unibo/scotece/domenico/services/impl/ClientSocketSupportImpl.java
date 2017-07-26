@@ -1,66 +1,68 @@
 package it.unibo.scotece.domenico.services.impl;
 
-import it.unibo.scotece.domenico.services.ClientSocketSupport;
+import it.unibo.scotece.domenico.services.SocketSupport;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
+import java.io.*;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.nio.channels.SocketChannel;
 
-public class ClientSocketSupportImpl implements ClientSocketSupport {
+public class ClientSocketSupportImpl implements SocketSupport {
 
-    private SocketChannel socketChannel;
+    public static final int BUFFER_SIZE = 1024 * 50;
+    private byte[] buffer;
 
-    @Override
-    public SocketChannel createChannel(String address) {
-        try {
-            this.socketChannel = SocketChannel.open();
-            SocketAddress socketAddress = new InetSocketAddress(address, 9999);
-            this.socketChannel.connect(socketAddress);
-            System.out.println("Connected... Now sending the file");
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return this.socketChannel;
+    public ClientSocketSupportImpl(){
+        this.buffer = new byte[BUFFER_SIZE];
     }
 
     @Override
-    public void sendFile() {
+    public void startServer() throws IOException {
+        ServerSocket socket = new ServerSocket(9000);
+        Socket client = socket.accept();
+        final String backup = System.getProperty("user.home") + "/backup.tar";
 
-        final String backup = System.getProperty("user.home") + "/backup/backup.tar";
-        final RandomAccessFile randomAccessFile;
+        BufferedInputStream in =
+                new BufferedInputStream(client.getInputStream());
 
-        try{
-            final File file = new File(backup);
-            randomAccessFile = new RandomAccessFile(file, "r");
+        BufferedOutputStream out =
+                new BufferedOutputStream(new FileOutputStream(backup));
 
-            FileChannel inChannel = randomAccessFile.getChannel();
-            ByteBuffer buffer = ByteBuffer.allocate(1024);
-
-            while (inChannel.read(buffer) > 0) {
-                buffer.flip();
-                this.socketChannel.write(buffer);
-                buffer.clear();
-            }
-
-            Thread.sleep(1000);
-            System.out.println("End of file reached..");
-            this.socketChannel.close();
-            randomAccessFile.close();
-
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
+        int len = 0;
+        while ((len = in.read(buffer)) > 0) {
+            out.write(buffer, 0, len);
+            System.out.print("#");
         }
 
+        in.close();
+        out.flush();
+        out.close();
+        client.close();
+        socket.close();
+        System.out.println("\nDone!");
+    }
+
+    @Override
+    public void startClient(String address) throws Exception {
+        Socket socket = new Socket(address, 9000);
+        final String backup = System.getProperty("user.home") + "/backup.tar";
+
+        BufferedInputStream in =
+                new BufferedInputStream(
+                        new FileInputStream(backup));
+
+        BufferedOutputStream out =
+                new BufferedOutputStream(socket.getOutputStream());
+
+        int len = 0;
+        while ((len = in.read(buffer)) > 0) {
+            out.write(buffer, 0, len);
+            System.out.print("#");
+        }
+        in.close();
+        out.flush();
+        out.close();
+        socket.close();
+        System.out.println("\nDone!");
     }
 }
