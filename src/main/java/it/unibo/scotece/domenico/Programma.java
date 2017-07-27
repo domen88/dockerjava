@@ -23,6 +23,8 @@ import spark.Spark;
 import java.beans.IntrospectionException;
 import java.net.URI;
 import java.nio.file.Paths;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 
 
@@ -99,17 +101,53 @@ public class Programma {
         get("/handoff", "application/json", (req, res) -> {
 
             DockerClient docker = currentDockerConnector.getConnection();
+            final CloseableHttpClient httpclient = HttpClients.createDefault();
+
+            Instant startHandoff = Instant.now();
 
             //Open Socket communication
-            final String uri = "http://137.204.57.112:8080/socket";
-            CloseableHttpClient httpclient = HttpClients.createDefault();
-            HttpGet httpGet = new HttpGet(uri);
+            final String uriSocket = "http://137.204.57.112:8080/socket";
+            HttpGet httpGet = new HttpGet(uriSocket);
             CloseableHttpResponse response = httpclient.execute(httpGet);
             response.close();
 
+            //Handoff procedure on local host
             HandoffImpl handoff = new HandoffImpl();
+
+            Instant start = Instant.now();
             handoff.createBackup(docker, "dbdata");
+            Instant stop = Instant.now();
+            System.out.println("DURATION: Create Backup Procedure "  + Duration.between(start, stop));
+
+            start = Instant.now();
             handoff.sendBackup("localhost", "137.204.57.112");
+            stop = Instant.now();
+            System.out.println("DURATION: Transfer Backup Procedure "  + Duration.between(start, stop));
+
+            //Start handoff procedure on remote host
+            docker = currentDockerConnector.setConnection("137.204.57.112", "/Users/domenicoscotece/.docker/openfog1");
+
+            start = Instant.now();
+            handoff.createDataVolumeContainer(docker, "mongo", "dbdata");
+            stop = Instant.now();
+            System.out.println("DURATION: Create Data Volume Procedure "  + Duration.between(start, stop));
+
+            start = Instant.now();
+            handoff.restore(docker,"dbdata");
+            stop = Instant.now();
+            System.out.println("DURATION: Restore Backup Volume Procedure "  + Duration.between(start, stop));
+
+            start = Instant.now();
+            handoff.startContainerWithBackup(docker, "mongo", "dbdata", "some-mongo");
+            stop = Instant.now();
+            System.out.println("DURATION: Startup Procedure "  + Duration.between(start, stop));
+
+            //Restore docker connection
+            currentDockerConnector.setConnection();
+
+            Instant endHandoff = Instant.now();
+            System.out.println("DURATION: All handoff procedure "  + Duration.between(startHandoff, endHandoff));
+
             return "{\"message\":\"Handoff Completed\"}";
 
         });
