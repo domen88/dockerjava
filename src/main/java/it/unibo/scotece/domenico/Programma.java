@@ -3,8 +3,6 @@ package it.unibo.scotece.domenico;
 import static spark.Spark.*;
 
 import com.google.gson.Gson;
-import com.spotify.docker.client.DefaultDockerClient;
-import com.spotify.docker.client.DockerCertificates;
 import com.spotify.docker.client.DockerClient;
 import com.spotify.docker.client.exceptions.ContainerNotFoundException;
 import com.spotify.docker.client.exceptions.DockerCertificateException;
@@ -12,20 +10,12 @@ import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.messages.*;
 import it.unibo.scotece.domenico.services.impl.DockerConnectImpl;
 import it.unibo.scotece.domenico.services.impl.HandoffImpl;
-import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
-import org.apache.http.util.EntityUtils;
-import spark.Spark;
-
-import java.beans.IntrospectionException;
-import java.net.URI;
-import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
 
 
 public class Programma {
@@ -53,7 +43,8 @@ public class Programma {
 
             final String ip = req.params(":ip");
             address.append(ip);
-            String path = "/Users/domenicoscotece/.docker/openfog";
+            //String path = "/Users/domenicoscotece/.docker/openfog";
+            String path = "/Users/Domenico/.docker/openfog";
             path += ip.equals("137.204.57.112") ? "1" : "2";
             DockerClient docker = currentDockerConnector.setConnection(ip, path);
             return "{\"message\":\"Connect OK\"}";
@@ -114,6 +105,7 @@ public class Programma {
             //Handoff procedure on local host
             HandoffImpl handoff = new HandoffImpl();
 
+            //Backup procedure
             Instant start = Instant.now();
             handoff.createBackup(docker, "dbdata");
             Instant stop = Instant.now();
@@ -125,7 +117,8 @@ public class Programma {
             System.out.println("DURATION: Transfer Backup Procedure "  + Duration.between(start, stop));
 
             //Start handoff procedure on remote host
-            docker = currentDockerConnector.setConnection("137.204.57.112", "/Users/domenicoscotece/.docker/openfog1");
+            //docker = currentDockerConnector.setConnection("137.204.57.112", "/Users/domenicoscotece/.docker/openfog1");
+            docker = currentDockerConnector.setConnection("137.204.57.112", "/Users/Domenico/.docker/openfog1");
 
             start = Instant.now();
             handoff.createDataVolumeContainer(docker, "mongo", "dbdata");
@@ -152,6 +145,52 @@ public class Programma {
 
         });
 
+        get("/handoffDump", "application/json", (req, res) -> {
+
+            DockerClient docker = currentDockerConnector.getConnection();
+            final CloseableHttpClient httpclient = HttpClients.createDefault();
+
+            Instant startHandoff = Instant.now();
+
+            //Open Socket communication
+            final String uriSocket = "http://137.204.57.112:8080/socket";
+            HttpGet httpGet = new HttpGet(uriSocket);
+            CloseableHttpResponse response = httpclient.execute(httpGet);
+            response.close();
+
+            //Handoff procedure on local host
+            HandoffImpl handoff = new HandoffImpl();
+
+            Instant start = Instant.now();
+            handoff.createDump(docker,"some-mongo");
+            Instant stop = Instant.now();
+            System.out.println("DURATION: Create Dump Procedure "  + Duration.between(start, stop));
+
+            start = Instant.now();
+            handoff.sendBackup("localhost", "137.204.57.112");
+            stop = Instant.now();
+            System.out.println("DURATION: Transfer Backup Procedure "  + Duration.between(start, stop));
+
+            //Start handoff procedure on remote host
+            //docker = currentDockerConnector.setConnection("137.204.57.112", "/Users/domenicoscotece/.docker/openfog1");
+            docker = currentDockerConnector.setConnection("137.204.57.112", "/Users/Domenico/.docker/openfog1");
+
+            start = Instant.now();
+            handoff.startContainerWithBackup(docker, "mongo", "", "some-mongo");
+            handoff.restoreDump(docker,"dbdata","some-mongo");
+            stop = Instant.now();
+            System.out.println("DURATION: Dump Start up Procedure "  + Duration.between(start, stop));
+
+            //Restore docker connection
+            currentDockerConnector.setConnection();
+
+            Instant endHandoff = Instant.now();
+            System.out.println("DURATION: All handoff procedure "  + Duration.between(startHandoff, endHandoff));
+
+            return "{\"message\":\"Handoff Dump Completed\"}";
+
+        });
+
         get("/createHandoff", "application/json", (req, res) -> {
 
             DockerClient docker = currentDockerConnector.getConnection();
@@ -174,61 +213,16 @@ public class Programma {
 
         });
 
-        //Open the docker client
-        //final DockerClient docker = DefaultDockerClient.fromEnv().build();
+        get("/createDump", "application/json", (req, res) -> {
 
-        //DockerConnectImpl dockerConnector = new DockerConnectImpl("137.204.57.106", "/Users/domenicoscotece/.docker/openfog2");
-        //DockerConnectImpl dockerConnector = new DockerConnectImpl();
-        //DockerClient docker = dockerConnector.getConnection();
+            DockerClient docker = currentDockerConnector.getConnection();
 
-        /*Integer control = Integer.parseInt(args[0]);
+            HandoffImpl handoff = new HandoffImpl();
+            handoff.createDump(docker,"some-mongo");
 
-        if (control.equals(0)) {
+            return "{\"message\":\"dump created\"}";
 
-            //Pull latest mongo images from docker hub
-            docker.pull("mongo:latest");
-
-            //Configuration of Container Data Volume
-            final ContainerConfig containerConfig = ContainerConfig.builder()
-                    .image("mongo")
-                    .addVolume("/data/db")
-                    .cmd("/bin/true")
-                    .build();
-
-            //Create Container Data Volume
-            docker.createContainer(containerConfig, "dbdata");
-
-        } else if (control.equals(1)){
-
-            //Pull latest ubuntu images from docker hub
-            docker.pull("busybox:latest");
-            String currentUsersHomeDir = System.getProperty("user.home");
-
-            HostConfig hostConfig = HostConfig.builder()
-                    .autoRemove(Boolean.TRUE)
-                    .volumesFrom("dbdata")
-                    .binds(HostConfig.Bind.from(currentUsersHomeDir).to("/backup").build())
-                    .build();
-
-
-            //Configuration of Container Data Volume
-            final ContainerConfig containerConfig = ContainerConfig.builder()
-                    .image("busybox")
-                    .hostConfig(hostConfig)
-                    .cmd("tar", "cvf", "/backup/backup.tar", "/data/db")
-                    .build();
-            //Create Container Data Volume
-            final ContainerCreation container = docker.createContainer(containerConfig, "dbBackup");
-
-            docker.startContainer(container.id());
-            //docker.stopContainer(container.id(), 5);
-
-        }*/
-
-
-        //System.out.println(docker.info().toString());
-        //Close the docker client
-        //dockerConnector.close();
+        });
 
     }
 

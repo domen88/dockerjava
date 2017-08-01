@@ -37,20 +37,6 @@ public class HandoffImpl implements Handoff {
         //Create Container Data Volume
         docker.createContainer(containerConfig, containerName);
 
-        /*Callable<ContainerCreation> task = () -> {
-            try {
-                return docker.createContainer(containerConfig, containerName);
-            }
-            catch (InterruptedException e) {
-                throw new IllegalStateException("task interrupted", e);
-            }
-        };
-
-        ExecutorService executor = Executors.newFixedThreadPool(1);
-        Future<ContainerCreation> future = executor.submit(task);
-
-        ContainerCreation result = future.get();*/
-
     }
 
     @Override
@@ -94,6 +80,45 @@ public class HandoffImpl implements Handoff {
         System.out.println(result.statusCode());
 
     }
+
+    @Override
+    public void createDump(DockerClient docker, String containerName) throws DockerException, InterruptedException, ExecutionException {
+
+        final String currentUsersHomeDir = System.getProperty("user.home");
+
+        HostConfig hostConfig = HostConfig.builder()
+                .autoRemove(Boolean.TRUE)
+                .binds(HostConfig.Bind.from(currentUsersHomeDir).to("/backup").build())
+                .links(containerName+":mongo")
+                .build();
+
+        final ContainerConfig containerConfig = ContainerConfig.builder()
+                .image("mongodump")
+                .hostConfig(hostConfig)
+                .cmd("no-cron")
+                .build();
+
+        final ContainerCreation container = docker.createContainer(containerConfig, "dbDump");
+
+        docker.startContainer(container.id());
+
+        Callable<ContainerExit> task = () -> {
+            try {
+                return docker.waitContainer(container.id());
+            }
+            catch (InterruptedException e) {
+                throw new IllegalStateException("task interrupted", e);
+            }
+        };
+
+        ExecutorService executor = Executors.newFixedThreadPool(1);
+        Future<ContainerExit> future = executor.submit(task);
+
+        ContainerExit result = future.get();
+        System.out.println(result.statusCode());
+
+    }
+
 
     @Override
     public void sendBackup(String src, String dst) throws Exception {
@@ -147,6 +172,53 @@ public class HandoffImpl implements Handoff {
     }
 
     @Override
+    public void restoreDump(DockerClient docker, String volumesFrom, String containerName) throws DockerException, InterruptedException, ExecutionException {
+
+        //Extract Dump
+        docker.pull("busybox:latest");
+        final String currentUsersHomeDir = "/home/dscotece";
+
+        HostConfig hostConfig = HostConfig.builder()
+                .autoRemove(Boolean.TRUE)
+                .binds(HostConfig.Bind.from(currentUsersHomeDir).to("/backup").build())
+                .build();
+
+        //Configuration of Container Data Volume
+        final ContainerConfig containerConfig = ContainerConfig.builder()
+                .image("busybox")
+                .hostConfig(hostConfig)
+                .cmd("tar", "xvf", "/backup/backup.tar.gz", "-C", "/backup")
+                .build();
+
+        //Create Container
+        final ContainerCreation container = docker.createContainer(containerConfig, "extractDump");
+
+        docker.startContainer(container.id());
+
+        //Restore Dump
+        HostConfig hostConfig1 = HostConfig.builder()
+                .autoRemove(Boolean.TRUE)
+                .binds(HostConfig.Bind.from(currentUsersHomeDir+"/dump").to("/backup").build())
+                .links(containerName+":mongo")
+                .build();
+
+        //Configuration of Container Data Volume
+        final ContainerConfig containerConfig1 = ContainerConfig.builder()
+                .image("mongorestore")
+                .hostConfig(hostConfig1)
+                .cmd("-h", "mongo", "-p", "27017", "/backup/test", "--db", "test")
+                .build();
+
+
+        //Create Container
+        final ContainerCreation container1 = docker.createContainer(containerConfig1, "restoreDump");
+
+        docker.startContainer(container1.id());
+
+    }
+
+
+    @Override
     public void startContainerWithBackup(DockerClient docker, String baseImage, String volumesFrom, String containerName) throws DockerException, InterruptedException {
 
         //Pull latest mongo images from docker hub
@@ -156,11 +228,17 @@ public class HandoffImpl implements Handoff {
                 .volumesFrom(volumesFrom)
                 .build();
 
-        //Configuration of Container Data Volume
-        final ContainerConfig containerConfig = ContainerConfig.builder()
-                .image(baseImage)
-                .hostConfig(hostConfig)
-                .build();
+        final ContainerConfig containerConfig;
+        if (volumesFrom.isEmpty()){
+            containerConfig = ContainerConfig.builder()
+                    .image(baseImage)
+                    .build();
+        } else {
+            containerConfig = ContainerConfig.builder()
+                    .image(baseImage)
+                    .hostConfig(hostConfig)
+                    .build();
+        }
 
         //Create Container Data Volume
         ContainerCreation container = docker.createContainer(containerConfig, containerName);
