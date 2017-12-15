@@ -8,6 +8,9 @@ import com.spotify.docker.client.messages.ContainerCreation;
 import com.spotify.docker.client.messages.ContainerExit;
 import com.spotify.docker.client.messages.HostConfig;
 import it.unibo.scotece.domenico.services.Handoff;
+
+import java.time.Duration;
+import java.time.Instant;
 import java.util.concurrent.*;
 
 
@@ -16,8 +19,11 @@ public class HandoffImpl implements Handoff {
     @Override
     public void createDataVolumeContainer(DockerClient docker, String baseImage, String containerName) throws DockerException, InterruptedException, ExecutionException {
 
+        Instant start = Instant.now();
         //Pull latest mongo images from docker hub
         docker.pull(baseImage+":latest");
+        Instant stop = Instant.now();
+        System.out.println("DURATION: Service Migration Procedure "  + Duration.between(start, stop));
 
         //Remove previous data container volume
         try {
@@ -133,7 +139,7 @@ public class HandoffImpl implements Handoff {
 
         //Pull latest ubuntu images from docker hub
         docker.pull("busybox:latest");
-        final String currentUsersHomeDir = "/home/dscotece";
+        final String currentUsersHomeDir = "/home/pi";
 
         HostConfig hostConfig = HostConfig.builder()
                 .autoRemove(Boolean.TRUE)

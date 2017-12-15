@@ -43,9 +43,7 @@ public class Programma {
 
             final String ip = req.params(":ip");
             address.append(ip);
-            //String path = "/Users/domenicoscotece/.docker/openfog";
-            String path = "/Users/Domenico/.docker/openfog";
-            path += ip.equals("137.204.57.112") ? "1" : "2";
+            String path = "/Users/dscotece/.docker/rpi";
             DockerClient docker = currentDockerConnector.setConnection(ip, path);
             return "{\"message\":\"Connect OK\"}";
 
@@ -97,7 +95,8 @@ public class Programma {
             Instant startHandoff = Instant.now();
 
             //Open Socket communication
-            final String uriSocket = "http://137.204.57.112:8080/socket";
+            //final String uriSocket = "http://137.204.57.112:8080/socket";
+            final String uriSocket = "http://192.168.2.7:8080/socket";
             HttpGet httpGet = new HttpGet(uriSocket);
             CloseableHttpResponse response = httpclient.execute(httpGet);
             response.close();
@@ -112,28 +111,29 @@ public class Programma {
             System.out.println("DURATION: Create Backup Procedure "  + Duration.between(start, stop));
 
             start = Instant.now();
-            handoff.sendBackup("localhost", "137.204.57.112");
+            //handoff.sendBackup("localhost", "137.204.57.112");
+            handoff.sendBackup("localhost", "192.168.2.7");
             stop = Instant.now();
             System.out.println("DURATION: Transfer Backup Procedure "  + Duration.between(start, stop));
 
             //Start handoff procedure on remote host
-            //docker = currentDockerConnector.setConnection("137.204.57.112", "/Users/domenicoscotece/.docker/openfog1");
-            docker = currentDockerConnector.setConnection("137.204.57.112", "/Users/Domenico/.docker/openfog1");
+            //docker = currentDockerConnector.setConnection("137.204.57.112", "/Users/dscotece/.docker/rpi");
+            docker = currentDockerConnector.setConnection("192.168.2.7", "/Users/dscotece/.docker/rpi");
 
             start = Instant.now();
-            handoff.createDataVolumeContainer(docker, "mongo", "dbdata");
+            handoff.createDataVolumeContainer(docker, "nonoroazoro/rpi-mongo", "dbdata");
             stop = Instant.now();
             System.out.println("DURATION: Create Data Volume Procedure "  + Duration.between(start, stop));
 
             start = Instant.now();
             handoff.restore(docker,"dbdata");
             stop = Instant.now();
-            System.out.println("DURATION: Restore Backup Volume Procedure "  + Duration.between(start, stop));
+            System.out.println("DURATION: Data Startup Procedure "  + Duration.between(start, stop));
 
             start = Instant.now();
-            handoff.startContainerWithBackup(docker, "mongo", "dbdata", "some-mongo");
+            handoff.startContainerWithBackup(docker, "nonoroazoro/rpi-mongo", "dbdata", "some-mongo");
             stop = Instant.now();
-            System.out.println("DURATION: Startup Procedure "  + Duration.between(start, stop));
+            System.out.println("DURATION: Service Startup Procedure "  + Duration.between(start, stop));
 
             //Restore docker connection
             currentDockerConnector.setConnection();
@@ -153,7 +153,8 @@ public class Programma {
             Instant startHandoff = Instant.now();
 
             //Open Socket communication
-            final String uriSocket = "http://137.204.57.112:8080/socket";
+            //final String uriSocket = "http://137.204.57.112:8080/socket";
+            final String uriSocket = "http://192.168.2.7:8080/socket";
             HttpGet httpGet = new HttpGet(uriSocket);
             CloseableHttpResponse response = httpclient.execute(httpGet);
             response.close();
@@ -167,16 +168,17 @@ public class Programma {
             System.out.println("DURATION: Create Dump Procedure "  + Duration.between(start, stop));
 
             start = Instant.now();
-            handoff.sendBackup("localhost", "137.204.57.112");
+            //handoff.sendBackup("localhost", "137.204.57.112");
+            handoff.sendBackup("localhost", "192.168.2.7");
             stop = Instant.now();
             System.out.println("DURATION: Transfer Backup Procedure "  + Duration.between(start, stop));
 
             //Start handoff procedure on remote host
-            //docker = currentDockerConnector.setConnection("137.204.57.112", "/Users/domenicoscotece/.docker/openfog1");
-            docker = currentDockerConnector.setConnection("137.204.57.112", "/Users/Domenico/.docker/openfog1");
+            //docker = currentDockerConnector.setConnection("137.204.57.112", "/Users/dscotece/.docker/rpi");
+            docker = currentDockerConnector.setConnection("192.168.2.7", "/Users/dscotece/.docker/rpi");
 
             start = Instant.now();
-            handoff.startContainerWithBackup(docker, "mongo", "", "some-mongo");
+            handoff.startContainerWithBackup(docker, "nonoroazoro/rpi-mongo", "", "some-mongo");
             handoff.restoreDump(docker,"dbdata","some-mongo");
             stop = Instant.now();
             System.out.println("DURATION: Dump Start up Procedure "  + Duration.between(start, stop));
