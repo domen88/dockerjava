@@ -3,9 +3,6 @@ package it.unibo.scotece.domenico.services;
 import com.spotify.docker.client.DockerClient;
 import com.spotify.docker.client.exceptions.DockerException;
 
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.ProtocolException;
 import java.util.concurrent.ExecutionException;
 
 public interface Handoff {

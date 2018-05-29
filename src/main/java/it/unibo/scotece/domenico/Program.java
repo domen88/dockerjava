@@ -18,7 +18,7 @@ import java.time.Duration;
 import java.time.Instant;
 
 
-public class Programma {
+public class Program {
 
     public static void main(String[] args) throws DockerCertificateException, DockerException, InterruptedException {
 
@@ -43,7 +43,7 @@ public class Programma {
 
             final String ip = req.params(":ip");
             address.append(ip);
-            String path = "/Users/dscotece/.docker/rpi";
+            String path = Conf.dockerCertificatesPath;
             DockerClient docker = currentDockerConnector.setConnection(ip, path);
             return "{\"message\":\"Connect OK\"}";
 
@@ -64,7 +64,8 @@ public class Programma {
             DockerClient docker = currentDockerConnector.getConnection();
 
             //Pull latest mongo images from docker hub
-            docker.pull("mongo:latest");
+            final String image = Conf.dockerImageName + ":" + Conf.dockerImageVersion;
+            docker.pull(image);
 
             //Remove previous data container volume
             try {
@@ -95,8 +96,7 @@ public class Programma {
             Instant startHandoff = Instant.now();
 
             //Open Socket communication
-            //final String uriSocket = "http://137.204.57.112:8080/socket";
-            final String uriSocket = "http://192.168.2.7:8080/socket";
+            final String uriSocket = "http://" + Conf.remoteHostIP + ":" + Conf.remoteHostPORT + "/socket";
             HttpGet httpGet = new HttpGet(uriSocket);
             CloseableHttpResponse response = httpclient.execute(httpGet);
             response.close();
@@ -111,16 +111,15 @@ public class Programma {
             System.out.println("DURATION: Create Backup Procedure "  + Duration.between(start, stop));
 
             start = Instant.now();
-            //handoff.sendBackup("localhost", "137.204.57.112");
-            handoff.sendBackup("localhost", "192.168.2.7");
+            handoff.sendBackup("localhost", Conf.remoteHostIP);
             stop = Instant.now();
             System.out.println("DURATION: Transfer Backup Procedure "  + Duration.between(start, stop));
 
             //Start handoff procedure on remote host
-            //docker = currentDockerConnector.setConnection("137.204.57.112", "/Users/dscotece/.docker/rpi");
-            docker = currentDockerConnector.setConnection("192.168.2.7", "/Users/dscotece/.docker/rpi");
+            docker = currentDockerConnector.setConnection(Conf.remoteHostIP, Conf.dockerCertificatesPath);
 
             start = Instant.now();
+            //Mongo Image for RPI: nonoroazoro/rpi-mongo
             handoff.createDataVolumeContainer(docker, "nonoroazoro/rpi-mongo", "dbdata");
             stop = Instant.now();
             System.out.println("DURATION: Create Data Volume Procedure "  + Duration.between(start, stop));
@@ -153,8 +152,7 @@ public class Programma {
             Instant startHandoff = Instant.now();
 
             //Open Socket communication
-            //final String uriSocket = "http://137.204.57.112:8080/socket";
-            final String uriSocket = "http://192.168.2.7:8080/socket";
+            final String uriSocket = "http://" + Conf.remoteHostIP + ":" + Conf.remoteHostPORT + "/socket";
             HttpGet httpGet = new HttpGet(uriSocket);
             CloseableHttpResponse response = httpclient.execute(httpGet);
             response.close();
@@ -168,14 +166,12 @@ public class Programma {
             System.out.println("DURATION: Create Dump Procedure "  + Duration.between(start, stop));
 
             start = Instant.now();
-            //handoff.sendBackup("localhost", "137.204.57.112");
-            handoff.sendBackup("localhost", "192.168.2.7");
+            handoff.sendBackup("localhost", Conf.remoteHostIP);
             stop = Instant.now();
             System.out.println("DURATION: Transfer Backup Procedure "  + Duration.between(start, stop));
 
             //Start handoff procedure on remote host
-            //docker = currentDockerConnector.setConnection("137.204.57.112", "/Users/dscotece/.docker/rpi");
-            docker = currentDockerConnector.setConnection("192.168.2.7", "/Users/dscotece/.docker/rpi");
+            docker = currentDockerConnector.setConnection(Conf.remoteHostIP, Conf.dockerCertificatesPath);
 
             start = Instant.now();
             handoff.startContainerWithBackup(docker, "nonoroazoro/rpi-mongo", "", "some-mongo");
@@ -209,7 +205,7 @@ public class Programma {
             DockerClient docker = currentDockerConnector.getConnection();
 
             HandoffImpl handoff = new HandoffImpl();
-            handoff.sendBackup("localhost", "137.204.57.112");
+            handoff.sendBackup("localhost", Conf.remoteHostIP);
 
             return "{\"message\":\"Handoff Sent\"}";
 
