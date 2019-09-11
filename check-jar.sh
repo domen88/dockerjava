@@ -1,6 +1,6 @@
 #! /bin/bash
 
-if -f target/$1.jar
+if test -f target/$1.jar
 then
     echo "jar exists"
     ls -l target/
