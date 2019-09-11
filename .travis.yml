@@ -8,6 +8,7 @@ matrix:
       jdk: openjdk8
     - env: JDK="OpenJDK 11"
       jdk: openjdk11
+install: true
 script:
   - mvn install
 after_success:
