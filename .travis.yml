@@ -2,9 +2,6 @@ dist: xenial
 language: java
 git:
   depth: false
-jdk:
-- openjdk8
-- openjdk11
 matrix:
   include:
     - env: JDK="OpenJDK 8"
@@ -34,5 +31,5 @@ deploy:
   file: $TRAVIS_BUILD_DIR/target/$PROJECT_NAME.jar
   skip_cleanup: true
   on:
-    env: JDK="OpenJDK 8"
     repo: domen88/dockerjava
+    condition: $JDK="OpenJDK 8"
