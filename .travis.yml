@@ -1,0 +1,6 @@
+dist: xenial
+language: java
+git:
+  depth: false
+script:
+  - mvn clean install
