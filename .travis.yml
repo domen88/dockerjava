@@ -13,7 +13,7 @@ before_cache:
   - bash clean-cache.sh
 cache:
   directories:
-  - $HOME/.m2
+    - "$HOME/.m2"
 before_deploy:
   - git config --global user.email "domen.88@live.it"
   - git config --global user.name "Domenico Scotece"
@@ -22,6 +22,8 @@ before_deploy:
 deploy:
   provider: releases
   api_key:
-    secure: "nXyHv4kKTMbJGgTC1HDML25igNj2PKAeVvTKw3nebNDmJy2psH2JxGaNhZSrSfppzu80hcI2nV6D2qAveb9f9U7C2ZSv0dpWqQvU15tPjwpOD/lFb9M3fBuupz498pXtWMcw9Y4VyRa0cRZFZMfgtCXCmEyPZoBNAFGGWOTof+f/4Zj/zMkRlmev5PZuuusTUUY8GEKv/0qNiMOnGbZXXVVmqACXIP6OySnCYo4i3MzjSm4Yhjev4ndN5vIEsuY/TRfLJ/HItRD5j6zFjagLXNcBKPtLy7YiGm2VzGuzkO2wliWampUBHgyzAZR8gtUEhC+vTiQxmswC+JVNBujPltK3O8zwRxWMGNc9VBAxycpopZ+QfnLQv3ox4HctIbORPNQ9vRerioIq1ildDrO5FOe2876ovifXFpDVrRxo5fkxHTz2+A33c6ITCih9D3jYLfGebYAyuOqT8bdiNQV/Wre0BSCR8ErMzqMWf5J9S8bEB2oE/PmBvq23hQ19tOyy2YmDIeK/KYB8i/UVm2LRxDZc4IIwu0ktgEMmuKttCnZfduN7Yf7zR/P8jlGzLt2kuN1J96WrlFhFpzj5hB6+yUqwfNv/d3P03pIevKz0wJWo5fmqsJNtvkGGY7HgxYDPzzZbGzyK3YkdmFfCOnU0fL90tGGX7lv+ylOeLHaK5vU="  
+    secure: FYFpGA9PqekxXW61L2K+iyPppSnfJAFw9unAE/xZ1KJ6+iprZpjF7O35nz8rF2stSU54C2YH55JU/Ff/z9aBQA2D9Pih6wY8a55fCY+0vVeJ67ruFOL2ml9diwgumn7s3bSFSIfbkYJ/FJuhlHS+A699NOIRGP+QmCUqLZ3hD9dBc5FgvEry0Pftnq5XNK6sYRX9AcFuWzRkNa5rEbjaN2v41WHPemrMRo30J3MOY3AgUQqUQAfEqst2Jf2wK1SAjxtrixLudVt/dkDVnjAiExr4CP8u6qVKQjbiGXkezR82nrjnodHzVgZd8F9s6fzaU+jMlg8arjhwLsVUHL10WHcridtzTkdbvg1tB3KYIdbAAmhpgEV0wpKePfRoA1/SDfLpq3B/KVKoFFnZMBCQISiik8US5zTMc/h0BkVNSPRufInssi2u4bO4OWIwU0W0h9HuqFMDGx08nfj9pf05+qFOC8JOcbmk7SThflq9IbUNUcdajEu0GgzDqUQVlAYMCTpTZQJotlm7buKdogms63sCUG9U2KY2nTQdH62fHseckAnrolVzQr+Kqcu/yrdPW04wy/GgHjidnzjL62D+5Tf/9gXzKQN5pV0W720RJtXiIoNMk0EzrBGKgja8dAyBOo70Tm/6OnKPRlGwT8erq6RmhASFyQt9Np/9MsMuEpk=
   file: $TRAVIS_BUILD_DIR/target/$PROJECT_NAME.jar
   skip_cleanup: true
+  on:
+    repo: domen88/dockerjava
