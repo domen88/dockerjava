@@ -14,3 +14,14 @@ before_cache:
 cache:
   directories:
   - $HOME/.m2
+before_deploy:
+  - git config --global user.email "domen.88@live.it"
+  - git config --global user.name "Domenico Scotece"
+  - export TRAVIS_TAG=${TRAVIS_TAG:-$(date +'%Y%m%d%H%M%S')-$(git log --format=%h -1)}
+  - git tag $TRAVIS_TAG
+deploy:
+  provider: releases
+  api_key:
+    secure: "nXyHv4kKTMbJGgTC1HDML25igNj2PKAeVvTKw3nebNDmJy2psH2JxGaNhZSrSfppzu80hcI2nV6D2qAveb9f9U7C2ZSv0dpWqQvU15tPjwpOD/lFb9M3fBuupz498pXtWMcw9Y4VyRa0cRZFZMfgtCXCmEyPZoBNAFGGWOTof+f/4Zj/zMkRlmev5PZuuusTUUY8GEKv/0qNiMOnGbZXXVVmqACXIP6OySnCYo4i3MzjSm4Yhjev4ndN5vIEsuY/TRfLJ/HItRD5j6zFjagLXNcBKPtLy7YiGm2VzGuzkO2wliWampUBHgyzAZR8gtUEhC+vTiQxmswC+JVNBujPltK3O8zwRxWMGNc9VBAxycpopZ+QfnLQv3ox4HctIbORPNQ9vRerioIq1ildDrO5FOe2876ovifXFpDVrRxo5fkxHTz2+A33c6ITCih9D3jYLfGebYAyuOqT8bdiNQV/Wre0BSCR8ErMzqMWf5J9S8bEB2oE/PmBvq23hQ19tOyy2YmDIeK/KYB8i/UVm2LRxDZc4IIwu0ktgEMmuKttCnZfduN7Yf7zR/P8jlGzLt2kuN1J96WrlFhFpzj5hB6+yUqwfNv/d3P03pIevKz0wJWo5fmqsJNtvkGGY7HgxYDPzzZbGzyK3YkdmFfCOnU0fL90tGGX7lv+ylOeLHaK5vU="  
+  file: $TRAVIS_BUILD_DIR/target/$PROJECT_NAME.jar
+  skip_cleanup: true
