@@ -2,5 +2,12 @@ dist: xenial
 language: java
 git:
   depth: false
+install: true
 script:
-  - mvn clean install
+  - mvn install
+after_success:
+  - cd $TRAVIS_BUILD_DIR
+  - bash check-jar.sh
+cache:
+  directories:
+  - $HOME/.m2
